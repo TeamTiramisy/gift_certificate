@@ -10,4 +10,9 @@ spring:
     properties.hibernate:
       show_sql: true
       format_sql: true
+      hbm2ddl.auto: validate
     open-in-view: false
+
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
