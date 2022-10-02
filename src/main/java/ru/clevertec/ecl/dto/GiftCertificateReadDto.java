@@ -1,11 +1,10 @@
 package ru.clevertec.ecl.dto;
 
-
-import lombok.*;
+import lombok.Builder;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Value

@@ -1,7 +1,14 @@
 package ru.clevertec.ecl.dto;
 
-import lombok.*;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.experimental.FieldDefaults;
+
+import javax.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -9,16 +16,19 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class GiftCertificateCreateDto {
 
-    private String name;
+    String name;
 
-    private String description;
+    String description;
 
-    private BigDecimal price;
+    @Positive
+    BigDecimal price;
 
-    private Integer duration;
+    @Positive
+    Integer duration;
 
-    private List<TagCreateDto> tags;
+    List<TagCreateDto> tags;
 
 }

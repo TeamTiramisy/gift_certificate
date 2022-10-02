@@ -6,17 +6,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.clevertec.ecl.dto.TagCreateDto;
 import ru.clevertec.ecl.dto.TagReadDto;
+import ru.clevertec.ecl.entity.GiftCertificate;
 import ru.clevertec.ecl.entity.Tag;
-import ru.clevertec.ecl.exception.ResourceNotFountException;
+import ru.clevertec.ecl.exception.ResourceNotFoundException;
 import ru.clevertec.ecl.mapper.TagMapper;
 import ru.clevertec.ecl.repository.TagRepository;
+import ru.clevertec.ecl.util.Constant;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import static ru.clevertec.ecl.util.Constant.ERROR_CODE;
-import static ru.clevertec.ecl.util.Constant.FIELD_NAME_ID;
+import static java.util.stream.Collectors.*;
 
 @Service
 @RequiredArgsConstructor
@@ -26,16 +26,17 @@ public class TagService {
     private final TagRepository tagRepository;
     private final TagMapper tagMapper;
 
+
     public List<TagReadDto> findAll(Pageable pageable) {
         return tagRepository.findAll(pageable).stream()
                 .map(tagMapper::mapToDto)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     public TagReadDto findById(Integer id) {
         return tagRepository.findById(id)
                 .map(tagMapper::mapToDto)
-                .orElseThrow(() -> new ResourceNotFountException(FIELD_NAME_ID, id, ERROR_CODE));
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
     }
 
     @Transactional
@@ -50,10 +51,10 @@ public class TagService {
     @Transactional
     public TagReadDto update(Integer id, TagCreateDto tagCreateDto) {
         return tagRepository.findById(id)
-                .map(tag -> copy(tag, tagCreateDto))
+                .map(tag -> tagMapper.update(tag, tagCreateDto))
                 .map(tagRepository::saveAndFlush)
                 .map(tagMapper::mapToDto)
-                .orElseThrow(() -> new ResourceNotFountException(FIELD_NAME_ID, id, ERROR_CODE));
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
 
     }
 
@@ -64,14 +65,24 @@ public class TagService {
                     tagRepository.delete(card);
                     return true;
                 })
-                .orElseThrow(() -> new ResourceNotFountException(FIELD_NAME_ID, id, ERROR_CODE));
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
     }
 
-    private Tag copy(Tag tag, TagCreateDto createDto) {
-        if (createDto.getName() != null) {
-            tag.setName(createDto.getName());
+    @Transactional
+    public GiftCertificate saveTags(GiftCertificate certificate) {
+        if (certificate.getTags() != null) {
+            certificate.getTags().stream()
+                    .filter(tag -> !tagRepository.findByName(tag.getName()).isPresent())
+                    .forEach(tagRepository::save);
+
+            List<Tag> tagList = certificate.getTags().stream()
+                    .map(tag -> tagRepository.findByName(tag.getName()).get())
+                    .collect(toList());
+
+            certificate.setTags(tagList);
         }
-        return tag;
+
+        return certificate;
     }
 
 }

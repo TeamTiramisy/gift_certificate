@@ -1,24 +1,25 @@
 package ru.clevertec.ecl.service;
 
+import com.querydsl.core.types.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.clevertec.ecl.dto.*;
-import ru.clevertec.ecl.entity.GiftCertificate;
-import ru.clevertec.ecl.entity.Tag;
-import ru.clevertec.ecl.exception.ResourceNotFountException;
+import ru.clevertec.ecl.dto.GiftCertificateCreateDto;
+import ru.clevertec.ecl.dto.GiftCertificateFilter;
+import ru.clevertec.ecl.dto.GiftCertificateReadDto;
+import ru.clevertec.ecl.dto.GiftCertificateUpdateDto;
+import ru.clevertec.ecl.entity.QGiftCertificate;
+import ru.clevertec.ecl.exception.ResourceNotFoundException;
 import ru.clevertec.ecl.mapper.GiftCertificateMapper;
+import ru.clevertec.ecl.predicate.QPredicates;
 import ru.clevertec.ecl.repository.GiftCertificateRepository;
-import ru.clevertec.ecl.repository.TagRepository;
+import ru.clevertec.ecl.util.Constant;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import static ru.clevertec.ecl.util.Constant.*;
+import static java.util.stream.Collectors.*;
 
 @Service
 @RequiredArgsConstructor
@@ -27,38 +28,32 @@ public class GiftCertificateService {
 
     private final GiftCertificateRepository repository;
     private final GiftCertificateMapper mapper;
-
-    private final TagRepository tagRepository;
+    private final TagService tagService;
 
 
     public List<GiftCertificateReadDto> findAll(GiftCertificateFilter filter, Pageable pageable) {
-        GiftCertificate certificate = mapper.mapFromFilter(filter);
-        ExampleMatcher matcher = ExampleMatcher.matching()
-                .withMatcher(FIELD_NAME_NAME, ExampleMatcher.GenericPropertyMatchers.contains().ignoreCase())
-                .withMatcher(FIELD_NAME_DESCRIPTION, ExampleMatcher.GenericPropertyMatchers.contains().ignoreCase());
-        return repository.findAll(Example.of(certificate, matcher), pageable).stream()
+        return repository.findAll(createPredicate(filter), pageable).stream()
                 .map(mapper::mapToDto)
-                .collect(Collectors.toList());
-
+                .collect(toList());
     }
 
     public GiftCertificateReadDto findById(Integer id) {
         return repository.findById(id)
                 .map(mapper::mapToDto)
-                .orElseThrow(() -> new ResourceNotFountException(FIELD_NAME_ID, id, ERROR_CODE));
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
     }
 
-    public List<GiftCertificateReadDto> findAllByTagsName(String name, Pageable pageable) {
-        return repository.findAllByTagsName(name, pageable).stream()
+    public List<GiftCertificateReadDto> findAllByTagsName(String tagName, Pageable pageable) {
+        return repository.findAllByTagName(tagName, pageable).stream()
                 .map(mapper::mapToDto)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @Transactional
     public GiftCertificateReadDto save(GiftCertificateCreateDto certificateCreateDto) {
         return Optional.of(certificateCreateDto)
                 .map(mapper::mapToEntity)
-                .map(this::saveTags)
+                .map(tagService::saveTags)
                 .map(repository::save)
                 .map(mapper::mapToDto)
                 .get();
@@ -67,11 +62,21 @@ public class GiftCertificateService {
     @Transactional
     public GiftCertificateReadDto update(Integer id, GiftCertificateCreateDto certificateCreateDto) {
         return repository.findById(id)
-                .map(certificate -> copy(certificate, certificateCreateDto))
-                .map(this::saveTags)
+                .map(certificate -> mapper.update(certificate, certificateCreateDto))
+                .map(tagService::saveTags)
                 .map(repository::saveAndFlush)
                 .map(mapper::mapToDto)
-                .orElseThrow(() -> new ResourceNotFountException(FIELD_NAME_ID, id, ERROR_CODE));
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
+
+    }
+
+    @Transactional
+    public GiftCertificateReadDto updatePriceOrDuration(Integer id, GiftCertificateUpdateDto certificateCreateDto){
+        return repository.findById(id)
+                .map(certificate -> mapper.update(certificate, certificateCreateDto))
+                .map(repository::saveAndFlush)
+                .map(mapper::mapToDto)
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
 
     }
 
@@ -82,45 +87,15 @@ public class GiftCertificateService {
                     repository.delete(card);
                     return true;
                 })
-                .orElseThrow(() -> new ResourceNotFountException(FIELD_NAME_ID, id, ERROR_CODE));
+                .orElseThrow(() -> new ResourceNotFoundException(Constant.FIELD_NAME_ID, id, Constant.ERROR_CODE));
     }
 
-    private GiftCertificate copy(GiftCertificate certificate, GiftCertificateCreateDto certificateCreateDto) {
-        if (certificateCreateDto.getName() != null) {
-            certificate.setName(certificateCreateDto.getName());
-        }
-
-        if (certificateCreateDto.getDescription() != null) {
-            certificate.setDescription(certificateCreateDto.getDescription());
-        }
-
-        if (certificateCreateDto.getPrice() != null) {
-            certificate.setPrice(certificateCreateDto.getPrice());
-        }
-
-        if (certificateCreateDto.getDuration() != null) {
-            certificate.setDuration(certificateCreateDto.getDuration());
-        }
-
-        if (certificateCreateDto.getTags() != null) {
-            GiftCertificate giftCertificate = mapper.mapToEntity(certificateCreateDto);
-            certificate.setTags(giftCertificate.getTags());
-        }
-        return certificate;
-    }
-
-    private GiftCertificate saveTags(GiftCertificate certificate) {
-        certificate.getTags().stream()
-                .filter(tag -> !tagRepository.findByName(tag.getName()).isPresent())
-                .forEach(tagRepository::save);
-
-        List<Tag> tagList = certificate.getTags().stream()
-                .map(tag -> tagRepository.findByName(tag.getName()).get())
-                .collect(Collectors.toList());
-
-        certificate.setTags(tagList);
-
-        return certificate;
+    private Predicate createPredicate(GiftCertificateFilter filter) {
+        return QPredicates.builder()
+                .add(filter.getName(), QGiftCertificate.giftCertificate.name::containsIgnoreCase)
+                .add(filter.getDescription(), QGiftCertificate.giftCertificate.description::containsIgnoreCase)
+                .add(filter.getTags(), QGiftCertificate.giftCertificate.tags.any().name::in)
+                .build();
     }
 
 }

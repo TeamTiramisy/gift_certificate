@@ -1,5 +1,6 @@
 package ru.clevertec.ecl.service;
 
+import com.querydsl.core.types.Predicate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,18 +11,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import ru.clevertec.ecl.dto.*;
 import ru.clevertec.ecl.entity.GiftCertificate;
+import ru.clevertec.ecl.entity.QGiftCertificate;
 import ru.clevertec.ecl.entity.Tag;
-import ru.clevertec.ecl.exception.ResourceNotFountException;
+import ru.clevertec.ecl.exception.ResourceNotFoundException;
 import ru.clevertec.ecl.mapper.GiftCertificateMapper;
+import ru.clevertec.ecl.predicate.QPredicates;
 import ru.clevertec.ecl.repository.GiftCertificateRepository;
-import ru.clevertec.ecl.repository.TagRepository;
+import ru.clevertec.ecl.util.Constant;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.*;
-import static ru.clevertec.ecl.util.Constant.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GiftCertificateServiceTest {
@@ -30,7 +36,7 @@ class GiftCertificateServiceTest {
     private GiftCertificateRepository repository;
 
     @Mock
-    TagRepository tagRepository;
+    private TagService tagService;
 
     @Mock
     private GiftCertificateMapper mapper;
@@ -45,60 +51,60 @@ class GiftCertificateServiceTest {
     private GiftCertificateReadDto readDto;
     private GiftCertificateCreateDto createDto;
     private GiftCertificateFilter filter;
-    private ExampleMatcher matcher;
+    private GiftCertificateUpdateDto updateDto;
+    private Predicate predicate;
 
     @BeforeEach
     void init() {
-        pageable = PageRequest.of(PAGE_NUMBER, PAGE_SIZE);
+        pageable = PageRequest.of(Constant.PAGE_NUMBER, Constant.PAGE_SIZE);
         tag = getTag();
         certificate = getCertificate();
         readDto = getReadDto();
+        updateDto = getUpdateDto();
         createDto = getCreateDto();
         tags = new PageImpl<>(Arrays.asList(certificate));
         filter = getFilter();
-        matcher = getMatcher();
+        predicate = getPredicate();
     }
 
     @Test
     void findAllTest() {
-        Mockito.when(mapper.mapFromFilter(filter)).thenReturn(certificate);
-        Mockito.when(repository.findAll(Example.of(certificate, matcher), pageable)).thenReturn(tags);
-
-        Mockito.when(mapper.mapToDto(certificate)).thenReturn(readDto);
+        when(repository.findAll(predicate, pageable)).thenReturn(tags);
+        when(mapper.mapToDto(certificate)).thenReturn(readDto);
 
         assertEquals(1, service.findAll(filter, pageable).size());
     }
 
     @Test
     void findByIdTest() {
-        Mockito.when(repository.findById(TEST_ID)).thenReturn(Optional.ofNullable(certificate));
-        Mockito.when(mapper.mapToDto(certificate)).thenReturn(readDto);
+        when(repository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(certificate));
+        when(mapper.mapToDto(certificate)).thenReturn(readDto);
 
-        assertEquals(readDto, service.findById(TEST_ID));
+        assertEquals(readDto, service.findById(Constant.TEST_ID));
     }
 
     @Test
     void findAllByTagsNameTest() {
-        Mockito.when(repository.findAllByTagsName(TEST_NAME, pageable)).thenReturn(tags);
-        Mockito.when(mapper.mapToDto(certificate)).thenReturn(readDto);
+        when(repository.findAllByTagName(Constant.TEST_NAME, pageable)).thenReturn(tags.getContent());
+        when(mapper.mapToDto(certificate)).thenReturn(readDto);
 
-        assertEquals(1, service.findAllByTagsName(TEST_NAME, pageable).size());
+        assertEquals(1, service.findAllByTagsName(Constant.TEST_NAME, pageable).size());
     }
 
     @Test
     void findByIdExceptionTest() {
-        Mockito.when(repository.findById(TEST_ID)).thenReturn(Optional.empty());
+        when(repository.findById(Constant.TEST_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFountException.class, () -> service.findById(TEST_ID));
+        assertThrows(ResourceNotFoundException.class, () -> service.findById(Constant.TEST_ID));
     }
 
     //
     @Test
     void saveTest() {
-        Mockito.when(mapper.mapToEntity(createDto)).thenReturn(certificate);
-        Mockito.when(tagRepository.findByName(TEST_NAME)).thenReturn(Optional.ofNullable(tag));
-        Mockito.when(repository.save(certificate)).thenReturn(certificate);
-        Mockito.when(mapper.mapToDto(certificate)).thenReturn(readDto);
+        when(mapper.mapToEntity(createDto)).thenReturn(certificate);
+        when(tagService.saveTags(certificate)).thenReturn(certificate);
+        when(repository.save(certificate)).thenReturn(certificate);
+        when(mapper.mapToDto(certificate)).thenReturn(readDto);
 
         assertEquals(readDto.getId(), service.save(createDto).getId());
     }
@@ -106,36 +112,46 @@ class GiftCertificateServiceTest {
     //
     @Test
     void updateTest() {
-        Mockito.when(repository.findById(TEST_ID)).thenReturn(Optional.ofNullable(certificate));
-        Mockito.when(tagRepository.findByName(TEST_NAME)).thenReturn(Optional.ofNullable(tag));
-        Mockito.when(repository.saveAndFlush(certificate)).thenReturn(certificate);
-        Mockito.when(mapper.mapToDto(certificate)).thenReturn(readDto);
-        Mockito.when(mapper.mapToEntity(createDto)).thenReturn(certificate);
+        when(repository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(certificate));
+        when(mapper.update(certificate, createDto)).thenReturn(certificate);
+        when(tagService.saveTags(certificate)).thenReturn(certificate);
+        when(repository.saveAndFlush(certificate)).thenReturn(certificate);
+        when(mapper.mapToDto(certificate)).thenReturn(readDto);
 
-        assertEquals(readDto, service.update(TEST_ID, createDto));
+        assertEquals(readDto, service.update(Constant.TEST_ID, createDto));
+    }
+
+    @Test
+    void updatePriceOrDurationTest() {
+        when(repository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(certificate));
+        when(mapper.update(certificate, updateDto)).thenReturn(certificate);
+        when(repository.saveAndFlush(certificate)).thenReturn(certificate);
+        when(mapper.mapToDto(certificate)).thenReturn(readDto);
+
+        assertEquals(readDto, service.updatePriceOrDuration(Constant.TEST_ID, updateDto));
     }
 
     @Test
     void deleteTest() {
-        Mockito.when(repository.findById(TEST_ID)).thenReturn(Optional.ofNullable(certificate));
-        assertTrue(service.delete(TEST_ID));
+        when(repository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(certificate));
+        assertTrue(service.delete(Constant.TEST_ID));
         Mockito.verify(repository, Mockito.times(1)).delete(certificate);
     }
 
     private Tag getTag() {
         return Tag.builder()
-                .id(TEST_ID)
-                .name(TEST_NAME)
+                .id(Constant.TEST_ID)
+                .name(Constant.TEST_NAME)
                 .build();
     }
 
     private GiftCertificate getCertificate() {
         return GiftCertificate.builder()
-                .id(TEST_ID)
-                .name(TEST_NAME)
-                .description(TEST_DESCRIPTION)
-                .price(BigDecimal.valueOf(TEST_PRICE))
-                .duration(TEST_DURATION)
+                .id(Constant.TEST_ID)
+                .name(Constant.TEST_NAME)
+                .description(Constant.TEST_DESCRIPTION)
+                .price(BigDecimal.valueOf(Constant.TEST_PRICE))
+                .duration(Constant.TEST_DURATION)
                 .createDate(LocalDateTime.now())
                 .tags(Arrays.asList(tag))
                 .build();
@@ -143,42 +159,50 @@ class GiftCertificateServiceTest {
 
     private GiftCertificateReadDto getReadDto() {
         return GiftCertificateReadDto.builder()
-                .id(TEST_ID)
-                .name(TEST_NAME)
-                .description(TEST_DESCRIPTION)
-                .price(BigDecimal.valueOf(TEST_PRICE))
-                .duration(TEST_DURATION)
+                .id(Constant.TEST_ID)
+                .name(Constant.TEST_NAME)
+                .description(Constant.TEST_DESCRIPTION)
+                .price(BigDecimal.valueOf(Constant.TEST_PRICE))
+                .duration(Constant.TEST_DURATION)
                 .createDate(LocalDateTime.now())
                 .tags(Arrays.asList(TagReadDto.builder()
-                        .id(TEST_ID)
-                        .name(TEST_NAME)
+                        .id(Constant.TEST_ID)
+                        .name(Constant.TEST_NAME)
                         .build()))
                 .build();
     }
 
     private GiftCertificateCreateDto getCreateDto() {
         return GiftCertificateCreateDto.builder()
-                .name(TEST_NAME)
-                .description(TEST_DESCRIPTION)
-                .price(BigDecimal.valueOf(TEST_PRICE))
-                .duration(TEST_DURATION)
+                .name(Constant.TEST_NAME)
+                .description(Constant.TEST_DESCRIPTION)
+                .price(BigDecimal.valueOf(Constant.TEST_PRICE))
+                .duration(Constant.TEST_DURATION)
                 .tags(Arrays.asList(TagCreateDto.builder()
-                        .name(TEST_NAME)
+                        .name(Constant.TEST_NAME)
                         .build()))
                 .build();
     }
 
     private GiftCertificateFilter getFilter() {
         return GiftCertificateFilter.builder()
-                .name(FILTER_NAME)
-                .description(FILTER_DESCRIPTION)
+                .name(Constant.FILTER_NAME)
+                .description(Constant.FILTER_DESCRIPTION)
                 .build();
     }
 
-    private ExampleMatcher getMatcher() {
-        return ExampleMatcher.matching()
-                .withMatcher(FIELD_NAME_NAME, ExampleMatcher.GenericPropertyMatchers.contains().ignoreCase())
-                .withMatcher(FIELD_NAME_DESCRIPTION, ExampleMatcher.GenericPropertyMatchers.contains().ignoreCase());
+    private GiftCertificateUpdateDto getUpdateDto() {
+        return GiftCertificateUpdateDto.builder()
+                .price(BigDecimal.valueOf(Constant.TEST_PRICE))
+                .duration(Constant.TEST_DURATION)
+                .build();
+    }
+
+    private Predicate getPredicate() {
+        return QPredicates.builder()
+                .add(filter.getName(), QGiftCertificate.giftCertificate.name::containsIgnoreCase)
+                .add(filter.getDescription(), QGiftCertificate.giftCertificate.description::containsIgnoreCase)
+                .build();
     }
 
 }

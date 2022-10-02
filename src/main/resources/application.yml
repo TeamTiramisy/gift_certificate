@@ -16,3 +16,6 @@ spring:
     hibernate:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+server:
+  servlet:
+    context-path: /api/v1

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -13,16 +12,22 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import ru.clevertec.ecl.dto.TagCreateDto;
 import ru.clevertec.ecl.dto.TagReadDto;
+import ru.clevertec.ecl.entity.GiftCertificate;
 import ru.clevertec.ecl.entity.Tag;
-import ru.clevertec.ecl.exception.ResourceNotFountException;
+import ru.clevertec.ecl.exception.ResourceNotFoundException;
 import ru.clevertec.ecl.mapper.TagMapper;
 import ru.clevertec.ecl.repository.TagRepository;
+import ru.clevertec.ecl.util.Constant;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static ru.clevertec.ecl.util.Constant.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TagServiceTest {
@@ -39,6 +44,7 @@ class TagServiceTest {
     private Tag tag;
     private TagReadDto tagReadDto;
     private TagCreateDto tagCreateDto;
+    private GiftCertificate certificate;
     private Pageable pageable;
     private Page<Tag> tags;
 
@@ -47,76 +53,97 @@ class TagServiceTest {
         tag = getTag();
         tagReadDto = getTagReadDto();
         tagCreateDto = getTagCreateDto();
-        pageable = PageRequest.of(PAGE_NUMBER, PAGE_SIZE);
+        certificate = getCertificate();
+        pageable = PageRequest.of(Constant.PAGE_NUMBER, Constant.PAGE_SIZE);
         tags = new PageImpl<>(Arrays.asList(tag));
     }
 
     @Test
     void findAllTest() {
-        Mockito.when(tagRepository.findAll(pageable)).thenReturn(tags);
-        Mockito.when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
+        when(tagRepository.findAll(pageable)).thenReturn(tags);
+        when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
 
         assertEquals(1, tagService.findAll(pageable).size());
     }
 
     @Test
     void findByIdTest() {
-        Mockito.when(tagRepository.findById(TEST_ID)).thenReturn(Optional.ofNullable(tag));
-        Mockito.when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
+        when(tagRepository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(tag));
+        when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
 
-        assertEquals(tagReadDto, tagService.findById(TEST_ID));
+        assertEquals(tagReadDto, tagService.findById(Constant.TEST_ID));
     }
 
     @Test
     void findByIdExceptionTest() {
-        Mockito.when(tagRepository.findById(TEST_ID)).thenReturn(Optional.empty());
+        when(tagRepository.findById(Constant.TEST_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFountException.class, () -> tagService.findById(TEST_ID));
+        assertThrows(ResourceNotFoundException.class, () -> tagService.findById(Constant.TEST_ID));
     }
 
     @Test
     void saveTest() {
-        Mockito.when(tagMapper.mapToEntity(tagCreateDto)).thenReturn(tag);
-        Mockito.when(tagRepository.save(tag)).thenReturn(tag);
-        Mockito.when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
+        when(tagMapper.mapToEntity(tagCreateDto)).thenReturn(tag);
+        when(tagRepository.save(tag)).thenReturn(tag);
+        when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
 
         assertEquals(tagReadDto.getId(), tagService.save(tagCreateDto).getId());
     }
 
     @Test
     void updateTest() {
-        Mockito.when(tagRepository.findById(TEST_ID)).thenReturn(Optional.ofNullable(tag));
-        Mockito.when(tagRepository.saveAndFlush(tag)).thenReturn(tag);
-        Mockito.when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
+        when(tagRepository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(tag));
+        when(tagMapper.update(tag, tagCreateDto)).thenReturn(tag);
+        when(tagRepository.saveAndFlush(tag)).thenReturn(tag);
+        when(tagMapper.mapToDto(tag)).thenReturn(tagReadDto);
 
-        assertEquals(tagReadDto, tagService.update(TEST_ID, tagCreateDto));
+        assertEquals(tagReadDto, tagService.update(Constant.TEST_ID, tagCreateDto));
 
     }
 
     @Test
     void deleteTest() {
-        Mockito.when(tagRepository.findById(TEST_ID)).thenReturn(Optional.ofNullable(tag));
-        assertTrue(tagService.delete(TEST_ID));
-        Mockito.verify(tagRepository, Mockito.times(1)).delete(tag);
+        when(tagRepository.findById(Constant.TEST_ID)).thenReturn(Optional.ofNullable(tag));
+        assertTrue(tagService.delete(Constant.TEST_ID));
+        verify(tagRepository, times(1)).delete(tag);
+    }
+
+    @Test
+    void saveTagsTest(){
+        when(tagRepository.findByName(Constant.TEST_NAME)).thenReturn(Optional.ofNullable(tag));
+
+        assertEquals(certificate, tagService.saveTags(certificate));
     }
 
     private Tag getTag() {
         return Tag.builder()
-                .id(TEST_ID)
-                .name(TEST_NAME)
+                .id(Constant.TEST_ID)
+                .name(Constant.TEST_NAME)
                 .build();
     }
 
     private TagReadDto getTagReadDto() {
         return TagReadDto.builder()
-                .id(TEST_ID)
-                .name(TEST_NAME)
+                .id(Constant.TEST_ID)
+                .name(Constant.TEST_NAME)
                 .build();
     }
 
     private TagCreateDto getTagCreateDto() {
         return TagCreateDto.builder()
-                .name(TEST_NAME)
+                .name(Constant.TEST_NAME)
+                .build();
+    }
+
+    private GiftCertificate getCertificate() {
+        return GiftCertificate.builder()
+                .id(Constant.TEST_ID)
+                .name(Constant.TEST_NAME)
+                .description(Constant.TEST_DESCRIPTION)
+                .price(BigDecimal.valueOf(Constant.TEST_PRICE))
+                .duration(Constant.TEST_DURATION)
+                .createDate(LocalDateTime.now())
+                .tags(Arrays.asList(tag))
                 .build();
     }
 

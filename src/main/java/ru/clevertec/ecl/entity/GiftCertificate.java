@@ -1,6 +1,11 @@
 package ru.clevertec.ecl.entity;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.ToString;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.persistence.*;
@@ -43,7 +48,12 @@ public class GiftCertificate {
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     @ToString.Exclude
-    List<Tag> tags = new ArrayList<>();
+    private List<Tag> tags = new ArrayList<>();
+
+    @OneToMany(mappedBy = "certificate")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Order> orders = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {

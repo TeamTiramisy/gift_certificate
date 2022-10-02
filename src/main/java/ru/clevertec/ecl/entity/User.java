@@ -1,5 +1,6 @@
 package ru.clevertec.ecl.entity;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,20 +15,29 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(of = "name")
-@Entity
+@EqualsAndHashCode(of = "username")
 @Builder
-public class Tag {
+@Entity
+@Table(name = "users")
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String name;
+    private String username;
 
+    private String firstname;
+
+    private String lastname;
+
+    private String tel;
+
+    private String address;
+
+    @OneToMany(mappedBy = "user")
     @Builder.Default
-    @ManyToMany(mappedBy = "tags")
     @ToString.Exclude
-    private List<GiftCertificate> certificates = new ArrayList<>();
+    private List<Order> orders = new ArrayList<>();
 
 }
