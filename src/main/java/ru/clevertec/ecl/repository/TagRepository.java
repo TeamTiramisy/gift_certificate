@@ -14,6 +14,11 @@ public interface TagRepository extends JpaRepository<Tag, Integer> {
             "from tag t\n" +
             "         join certificate_tag ct on t.id = ct.tag_id\n" +
             "         join orders o on ct.certificate_id = o.certificate_id\n" +
+            "where o.user_id = (select o.user_id\n" +
+            "                   from orders o\n" +
+            "                   group by o.user_id\n" +
+            "                   order by sum(o.price) DESC\n" +
+            "                   limit 1)\n" +
             "group by t.id\n" +
             "order by count(ct.certificate_id) desc, sum(o.price) desc\n" +
             "limit 1", nativeQuery = true)
