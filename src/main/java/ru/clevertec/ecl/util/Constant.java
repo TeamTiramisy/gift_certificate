@@ -23,9 +23,7 @@ public class Constant {
     public static final Integer ERROR_CODE = 40401;
     public static final Integer ERROR_CODE_VALID = 40402;
     public static final String FIELD_NAME_ID = "id";
-    public static final String FIELD_NAME_NAME = "name";
-    public static final String FIELD_NAME_DESCRIPTION = "description";
     public static final String EXCEPTION_MESSAGE = "Requested resource not found (%s = %s)";
-    public static final String EMPTY = "";
+    public static final String URL_BASE = "localhost:";
 
 }

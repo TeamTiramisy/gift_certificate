@@ -16,4 +16,7 @@ public interface GiftCertificateRepository extends JpaRepository<GiftCertificate
     @Query("select c from GiftCertificate c join fetch c.tags t where t.name = lower(:name)")
     List<GiftCertificate> findAllByTagName(@Param("name") String tagName, Pageable pageable);
 
+    @Query(value = "select last_value from gift_certificate_id_seq", nativeQuery = true)
+    Integer getSeq();
+
 }
