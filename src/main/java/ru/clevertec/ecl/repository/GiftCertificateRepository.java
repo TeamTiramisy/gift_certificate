@@ -1,8 +1,6 @@
 package ru.clevertec.ecl.repository;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
@@ -15,8 +13,5 @@ public interface GiftCertificateRepository extends JpaRepository<GiftCertificate
 
     @Query("select c from GiftCertificate c join fetch c.tags t where t.name = lower(:name)")
     List<GiftCertificate> findAllByTagName(@Param("name") String tagName, Pageable pageable);
-
-    @Query(value = "select last_value from gift_certificate_id_seq", nativeQuery = true)
-    Integer getSeq();
 
 }

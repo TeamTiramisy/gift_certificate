@@ -4,25 +4,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import ru.clevertec.ecl.inercetor.DeleteInterceptor;
-import ru.clevertec.ecl.inercetor.GetInterceptor;
-import ru.clevertec.ecl.inercetor.PostInterceptor;
-import ru.clevertec.ecl.inercetor.PutInterceptor;
+import ru.clevertec.ecl.inercetor.GenericInterceptor;
+import ru.clevertec.ecl.inercetor.OrderInterceptor;
 
 @Configuration
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    private final GetInterceptor getInterceptor;
-    private final DeleteInterceptor deleteInterceptor;
-    private final PutInterceptor putInterceptor;
-    private final PostInterceptor postInterceptor;
+    private final GenericInterceptor genericInterceptor;
+    private final OrderInterceptor orderInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(getInterceptor);
-        registry.addInterceptor(deleteInterceptor);
-        registry.addInterceptor(putInterceptor);
-//        registry.addInterceptor(postInterceptor);
+        registry.addInterceptor(genericInterceptor).addPathPatterns("/**/certificates/**", "/**/tags/**", "/**/users/**");
+        registry.addInterceptor(orderInterceptor).addPathPatterns("/**/orders/**");
     }
+
 }

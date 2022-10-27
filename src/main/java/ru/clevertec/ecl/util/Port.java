@@ -2,19 +2,23 @@ package ru.clevertec.ecl.util;
 
 import lombok.experimental.UtilityClass;
 
+import java.util.Arrays;
+import java.util.List;
+
 @UtilityClass
 public class Port {
-    public static final Integer PORT_NOD_FIRST = 9001;
-    public static final Integer PORT_NOD_SECOND = 9002;
-    public static final Integer PORT_NOD_THIRD = 9003;
 
-    public static Integer getPort(Integer id){
-        if (id % 3 == 1){
-            return PORT_NOD_FIRST;
-        }
-        if (id % 3 == 2){
-            return PORT_NOD_SECOND;
-        }
-        return PORT_NOD_THIRD;
+    private static final Integer PORT_NOD_FIRST = 9001;
+    private static final Integer PORT_NOD_SECOND = 9002;
+    private static final Integer PORT_NOD_THIRD = 9003;
+
+    public static List<Integer> getPorts() {
+        return Arrays.asList(PORT_NOD_THIRD, PORT_NOD_FIRST, PORT_NOD_SECOND);
     }
+
+    public static Integer getPort(Integer seq){
+        int index = seq % 3;
+        return getPorts().get(index);
+    }
+
 }

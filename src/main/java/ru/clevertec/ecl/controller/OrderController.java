@@ -14,7 +14,7 @@ import javax.validation.constraints.Positive;
 import java.util.List;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/v1/orders")
 @RequiredArgsConstructor
 @Validated
 public class OrderController {
@@ -34,6 +34,16 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderReadDto> makeOrder(@RequestBody @Validated OrderMakeDto orderMakeDto) {
         return new ResponseEntity<>(orderService.makeOrder(orderMakeDto), HttpStatus.CREATED);
+    }
+
+    @PutMapping(value = "/seq")
+    public Integer setSeq(@RequestBody Integer seq) {
+        return orderService.setSeq(seq);
+    }
+
+    @GetMapping(value = "/seq")
+    public Integer getSeq() {
+        return orderService.getSeq();
     }
 
 }

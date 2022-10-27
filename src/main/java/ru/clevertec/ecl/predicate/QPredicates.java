@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -28,11 +29,8 @@ public class QPredicates {
     }
 
     public Predicate build() {
-        if(predicates.isEmpty()){
-            return Expressions.TRUE.isTrue();
-        }
-
-        return ExpressionUtils.allOf(predicates);
+        return Optional.ofNullable(ExpressionUtils.allOf(predicates))
+                .orElseGet(Expressions.TRUE::isTrue);
     }
 
 }

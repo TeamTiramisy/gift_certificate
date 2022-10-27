@@ -14,7 +14,7 @@ import javax.validation.constraints.Positive;
 import java.util.List;
 
 @RestController
-@RequestMapping("/tags")
+@RequestMapping("/v1/tags")
 @RequiredArgsConstructor
 @Validated
 public class TagController {

@@ -57,6 +57,15 @@ public class OrderService {
                 .get();
     }
 
+    @Transactional
+    public Integer setSeq(Integer seq) {
+        return orderRepository.setSeq(seq);
+    }
+
+    public Integer getSeq() {
+        return orderRepository.getSeq();
+    }
+
     private Order create(User user, GiftCertificate certificate) {
         return Order.builder()
                 .user(user)

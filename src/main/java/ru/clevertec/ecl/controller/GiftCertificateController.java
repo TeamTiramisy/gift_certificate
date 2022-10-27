@@ -16,7 +16,7 @@ import javax.validation.constraints.Positive;
 import java.util.List;
 
 @RestController
-@RequestMapping("/certificates")
+@RequestMapping("/v1/certificates")
 @RequiredArgsConstructor
 @Validated
 public class GiftCertificateController {
